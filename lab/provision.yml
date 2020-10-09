@@ -1,0 +1,18 @@
+---
+- name: play to configure the ansible controller
+  hosts: ansible_controller
+  become: true
+  tasks:
+    - name: ensure correct OS
+      fail:
+        msg: Operating System not Supported!
+      when:
+        - ansible_os_family != "RedHat" or
+          ansible_distribution_major_version != "8"
+
+    - name: install docker
+      import_tasks: tasks/docker.yml
+
+    - name: install molecule
+      import_tasks: tasks/molecule.yml
+
