@@ -46,9 +46,9 @@
     name: python3-pip
     state: present
 
-- name: docker - install docker-py using pip
+- name: docker - install docker using pip
   pip:
-    name: docker-py
+    name: docker
     state: present
     executable: pip3
 

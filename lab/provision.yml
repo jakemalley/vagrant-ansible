@@ -16,3 +16,8 @@
     - name: install molecule
       import_tasks: tasks/molecule.yml
 
+    - name: add vagrant user to docker group
+      user:
+        name: vagrant
+        groups: docker
+        append: true
