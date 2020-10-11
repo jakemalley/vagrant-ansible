@@ -2,6 +2,8 @@
 - name: play to configure the ansible controller
   hosts: ansible_controller
   become: true
+  vars:
+    vagrant_shared_directory: "/vagrant"
   tasks:
     - name: ensure correct OS
       fail:
@@ -9,6 +11,13 @@
       when:
         - ansible_os_family != "RedHat" or
           ansible_distribution_major_version != "8"
+
+    - name: disable firewalld (for simplicity...)
+      service:
+        name: firewalld
+        state: stopped
+        enabled: false
+      ignore_errors: true
 
     - name: install docker
       import_tasks: tasks/docker.yml
@@ -21,3 +30,27 @@
         name: vagrant
         groups: docker
         append: true
+
+    - name: create a symlink for code directory
+      file:
+        src: "{{ vagrant_shared_directory }}/code"
+        dest: "/code"
+        owner: vagrant
+        group: vagrant
+        state: link
+
+    - name: install vim
+      package:
+        name: vim
+        state: present
+
+    - name: add vimrc settings for YAML
+      copy:
+        content: |
+          syntax on
+          filetype plugin indent on
+          autocmd FileType yaml setlocal ts=2 sts=2 sw=2 expandtab autoindent
+        dest: "{{ item }}"
+      loop:
+        - /root/.vimrc
+        - /home/vagrant/.vimrc
