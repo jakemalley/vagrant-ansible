@@ -3,7 +3,11 @@
 
 machines = {
   "controller"   => { :ip => "172.16.0.10", :cpus => 2, :memory => 4096, :groups => ["ansible_controller"] },
+  "target01"     => { :ip => "172.16.0.11", :cpus => 2, :memory => 4096, :groups => ["ansible_target"] },
 }
+
+# create a hash of the groups in the format { "group" => [ "vm1", "vm2"... ] }
+machines_ansible_groups = machines.inject(Hash.new([])) {|g,(k,vs)|vs[:groups].each {|v| g[v] += [k]}; g}
 
 Vagrant.configure("2") do |config|
 
@@ -22,15 +26,21 @@ Vagrant.configure("2") do |config|
         vb.cpus = machine_config[:cpus]
         vb.memory = machine_config[:memory]
       end
+
+      # only provision the controller
+      if hostname == "controller"
+        machine.vm.provision "shell", path: "lab/bootstrap.sh"
+
+        machine.vm.provision "ansible_local" do |ansible|
+          ansible.groups = machines_ansible_groups
+          ansible.extra_vars = {
+            "vagrant_machines": machines,
+            "machines_ansible_groups": machines_ansible_groups
+          }
+          ansible.playbook = "lab/provision.yml"
+        end
+      end
     end
-  end
-
-  config.vm.provision "shell", path: "lab/bootstrap.sh"
-
-  config.vm.provision "ansible_local" do |ansible|
-    # create a hash of the groups in the format { "group" => [ "vm1", "vm2"... ] }
-    ansible.groups = machines.inject(Hash.new([])) {|g,(k,vs)|vs[:groups].each {|v| g[v] += [k]}; g}
-    ansible.playbook = "lab/provision.yml"
   end
 
 end

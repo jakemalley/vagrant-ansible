@@ -34,12 +34,14 @@
       - docker-ce-cli
       - containerd.io
     state: present
+  register: docker_install
 
 - name: docker - enable and start docker service
   service:
     name: docker
     state: restarted
     enabled: true
+  when: docker_install.changed
 
 - name: docker - install pip (python3)
   dnf:
@@ -57,3 +59,9 @@
     name: docker-compose
     state: present
     executable: pip3
+
+- name: add {{ vagrant_user }} user to docker group
+  user:
+    name: "{{ vagrant_user }}"
+    groups: docker
+    append: true

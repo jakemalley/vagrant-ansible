@@ -3,7 +3,9 @@
   hosts: ansible_controller
   become: true
   vars:
+    vagrant_user: "vagrant"
     vagrant_shared_directory: "/vagrant"
+    vagrant_dns_suffix: "ansible.dev.local"
   tasks:
     - name: ensure correct OS
       fail:
@@ -11,6 +13,14 @@
       when:
         - ansible_os_family != "RedHat" or
           ansible_distribution_major_version != "8"
+
+    - name: add 'dns' entries for other machines in /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        regexp: "^{{ item.value.ip }}"
+        line: "{{ item.value.ip }} {{ item.key }}.{{ vagrant_dns_suffix }} {{ item.key }}"
+      loop: "{{ vagrant_machines | dict2items }}"
+      when: vagrant_machines is defined and vagrant_machines
 
     - name: disable firewalld (for simplicity...)
       service:
@@ -24,12 +34,6 @@
 
     - name: install molecule
       import_tasks: tasks/molecule.yml
-
-    - name: add vagrant user to docker group
-      user:
-        name: vagrant
-        groups: docker
-        append: true
 
     - name: create a symlink for code directory
       file:
@@ -54,3 +58,28 @@
       loop:
         - /root/.vimrc
         - /home/vagrant/.vimrc
+
+    - name: insert the vagrant private  ssh key
+      get_url:
+        url: https://raw.githubusercontent.com/hashicorp/vagrant/master/keys/vagrant
+        dest: /home/vagrant/.ssh/id_rsa
+        owner: vagrant
+        group: vagrant
+        mode: 0600
+
+    - name: insert the vagrant public ssh key
+      get_url:
+        url: https://raw.githubusercontent.com/hashicorp/vagrant/master/keys/vagrant.pub
+        dest: /home/vagrant/.ssh/id_rsa.pub
+        owner: vagrant
+        group: vagrant
+        mode: 0600
+
+    - name: add ansible hosts
+      template:
+        src: ansible.hosts.j2
+        dest: /etc/ansible/hosts
+        owner: root
+        group: root
+        mode: '0644'
+      when: vagrant_machines is defined and vagrant_machines
