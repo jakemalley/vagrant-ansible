@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 
 machines = {
-  "controller"   => { :ip => "172.16.0.10", :cpus => 2, :memory => 4096, :groups => ["ansible_controller"] },
+  "awx"          => { :ip => "172.16.0.10", :cpus => 4, :memory => 4096, :groups => ["ansible_controller"] },
   "target01"     => { :ip => "172.16.0.11", :cpus => 2, :memory => 4096, :groups => ["ansible_target"] },
 }
 
@@ -28,7 +28,7 @@ Vagrant.configure("2") do |config|
       end
 
       # only provision the controller
-      if hostname == "controller"
+      if ! hostname.match(/target/)
         machine.vm.provision "shell", path: "lab/bootstrap.sh"
 
         machine.vm.provision "ansible_local" do |ansible|
@@ -37,7 +37,11 @@ Vagrant.configure("2") do |config|
             "vagrant_machines": machines,
             "machines_ansible_groups": machines_ansible_groups
           }
+          ansible.become = true
           ansible.playbook = "lab/provision.yml"
+          ansible.galaxy_role_file = "lab/requirements.yml"
+          ansible.galaxy_roles_path = "/etc/ansible/roles"
+          ansible.galaxy_command = "sudo ansible-galaxy install --role-file=%{role_file} --roles-path=%{roles_path}"
         end
       end
     end

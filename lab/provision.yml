@@ -1,18 +1,31 @@
 ---
-- name: play to configure the ansible controller
+- name: prerequisite play
   hosts: ansible_controller
-  become: true
   vars:
     vagrant_user: "vagrant"
     vagrant_shared_directory: "/vagrant"
     vagrant_dns_suffix: "ansible.dev.local"
-  tasks:
+    docker_users:
+      - "{{ vagrant_user }}"
+    nodejs_version: "10.x"
+    pip_install_packages:
+      - docker
+      - docker-compose
+    awx_repo_dir: "~/awx"
+    awx_run_install_playbook: false
+  pre_tasks:
     - name: ensure correct OS
       fail:
         msg: Operating System not Supported!
       when:
         - ansible_os_family != "RedHat" or
           ansible_distribution_major_version != "8"
+
+    - name: ensure /usr/local/bin exists
+      file:
+        path: /usr/local/bin
+        state: directory
+        mode: 0755
 
     - name: add 'dns' entries for other machines in /etc/hosts
       lineinfile:
@@ -29,9 +42,16 @@
         enabled: false
       ignore_errors: true
 
-    - name: install docker
-      import_tasks: tasks/docker.yml
+  roles:
+    - geerlingguy.repo-epel
+    - geerlingguy.git
+    - geerlingguy.ansible
+    - geerlingguy.docker
+    - geerlingguy.pip
+    - geerlingguy.nodejs
+    - geerlingguy.awx
 
+  tasks:
     - name: install molecule
       import_tasks: tasks/molecule.yml
 
