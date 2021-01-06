@@ -7,12 +7,10 @@
     vagrant_dns_suffix: "ansible.dev.local"
     docker_users:
       - "{{ vagrant_user }}"
-    nodejs_version: "10.x"
     pip_install_packages:
       - docker
       - docker-compose
-    awx_repo_dir: "~/awx"
-    awx_run_install_playbook: false
+    awx_version: '16.0.0'
   pre_tasks:
     - name: ensure correct OS
       fail:
@@ -48,7 +46,6 @@
     - geerlingguy.ansible
     - geerlingguy.docker
     - geerlingguy.pip
-    - geerlingguy.nodejs
     - geerlingguy.awx
 
   tasks:
@@ -103,3 +100,37 @@
         group: root
         mode: '0644'
       when: vagrant_machines is defined and vagrant_machines
+
+    - name: import geerlingguy.awx
+      import_role:
+        name: geerlingguy.awx
+      vars:
+        awx_repo_dir: /root/awx
+        awx_run_install_playbook: false
+
+    - name: check if playbook has been run before
+      stat:
+        path: /root/awx-compose
+      register: awx_playbook_already_run
+
+    - name: run the AWX installation playbook
+      command: >
+        ansible-playbook -i inventory install.yml
+        -e 'postgres_data_dir=/var/lib/pgdocker'
+        -e 'docker_compose_dir=/root/awx-compose'
+        -e 'project_data_dir=/var/lib/awx/projects'
+      args:
+        chdir: /root/awx/installer
+        creates: /root/awx-compose
+      ignore_errors: true
+
+    - name: pause for 30 seconds
+      pause:
+        seconds: 30
+      when: not awx_playbook_already_run.stat.exists
+
+    - name: restart container service
+      service:
+        name: docker
+        state: restarted
+      when: not awx_playbook_already_run.stat.exists
