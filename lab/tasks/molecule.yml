@@ -14,5 +14,8 @@
 
 - name: molecule - install molecule
   pip:
-    name: "molecule[lint]"
+    name:
+      - molecule
+      - yamllint
+      - ansible-lint
     state: present

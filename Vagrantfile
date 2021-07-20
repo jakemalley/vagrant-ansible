@@ -12,8 +12,9 @@ machines_ansible_groups = machines.inject(Hash.new([])) {|g,(k,vs)|vs[:groups].e
 Vagrant.configure("2") do |config|
 
   config.ssh.insert_key = false
-  config.vm.box = "jakemalley/centos8"
-  config.vm.synced_folder ".", "/vagrant"
+  config.vm.box = "jakemalley/centos8-stream"
+  config.vm.box_version = "0.0.1"
+  config.vm.synced_folder ".", "/vagrant", disabled: true
 
   machines.each do | hostname, machine_config |
     config.vm.define "#{hostname}" do | machine |
@@ -29,17 +30,21 @@ Vagrant.configure("2") do |config|
 
       # only provision the controller
       if ! hostname.match(/target/)
+        config.vm.synced_folder "lab/", "/opt/provision"
+        config.vm.synced_folder "code/", "/var/lib/awx/projects"
+
         machine.vm.provision "shell", path: "lab/bootstrap.sh"
 
         machine.vm.provision "ansible_local" do |ansible|
+          ansible.provisioning_path = "/opt/provision"
           ansible.groups = machines_ansible_groups
           ansible.extra_vars = {
             "vagrant_machines": machines,
             "machines_ansible_groups": machines_ansible_groups
           }
           ansible.become = true
-          ansible.playbook = "lab/provision.yml"
-          ansible.galaxy_role_file = "lab/requirements.yml"
+          ansible.playbook = "provision.yml"
+          ansible.galaxy_role_file = "requirements.yml"
           ansible.galaxy_roles_path = "/etc/ansible/roles"
           ansible.galaxy_command = "sudo ansible-galaxy install --role-file=%{role_file} --roles-path=%{roles_path}"
         end

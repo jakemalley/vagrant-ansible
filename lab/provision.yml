@@ -3,14 +3,14 @@
   hosts: ansible_controller
   vars:
     vagrant_user: "vagrant"
-    vagrant_shared_directory: "/vagrant"
     vagrant_dns_suffix: "ansible.dev.local"
     docker_users:
       - "{{ vagrant_user }}"
     pip_install_packages:
       - docker
       - docker-compose
-    awx_version: '16.0.0'
+    awx_version: '17.1.0'
+    install_molecule: false
   pre_tasks:
     - name: ensure correct OS
       fail:
@@ -50,14 +50,15 @@
 
   tasks:
     - name: install molecule
-      import_tasks: tasks/molecule.yml
+      include_tasks: tasks/molecule.yml
+      when: install_molecule | default(false)
 
-    - name: create a symlink for code directory
+    - name: symlink docker-compose
       file:
-        src: "{{ vagrant_shared_directory }}/code"
-        dest: "/code"
-        owner: vagrant
-        group: vagrant
+        src: /usr/local/bin/docker-compose
+        dest: /bin/docker-compose
+        owner: root
+        group: root
         state: link
 
     - name: install vim
@@ -113,24 +114,29 @@
         path: /root/awx-compose
       register: awx_playbook_already_run
 
-    - name: run the AWX installation playbook
-      command: >
-        ansible-playbook -i inventory install.yml
-        -e 'postgres_data_dir=/var/lib/pgdocker'
-        -e 'docker_compose_dir=/root/awx-compose'
-        -e 'project_data_dir=/var/lib/awx/projects'
-      args:
-        chdir: /root/awx/installer
-        creates: /root/awx-compose
-      ignore_errors: true
+    - block:
+        - name: run the AWX installation playbook
+          command: >
+            ansible-playbook -i inventory install.yml
+            -e 'postgres_data_dir=/var/lib/pgdocker'
+            -e 'docker_compose_dir=/root/awx-compose'
+            -e 'project_data_dir=/var/lib/awx/projects'
+            -e 'admin_password=password'
+            -e 'create_preload_data=False'
+          args:
+            chdir: /root/awx/installer
+            creates: /root/awx-compose
+          register: r_awx_install
 
-    - name: pause for 30 seconds
-      pause:
-        seconds: 30
-      when: not awx_playbook_already_run.stat.exists
+        - name: create preload data
+          command: docker exec awx_task bash -c "/usr/bin/awx-manage create_preload_data"
+          args:
+            chdir: /root/awx/installer
+            creates: /root/awx-compose
 
-    - name: restart container service
-      service:
-        name: docker
-        state: restarted
+      rescue:
+        - name: rescue debug task
+          debug:
+            msg: "AWX Installer Failed, please try again manually!"
+
       when: not awx_playbook_already_run.stat.exists
