@@ -1,0 +1,6 @@
+---
+__k3s_supported_os:
+  - RedHat
+
+__k3s_common_download_dir: /opt/k3s
+__k3s_common_install_dir: /usr/local/bin

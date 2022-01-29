@@ -1,0 +1,46 @@
+---
+
+- name: disable swap using swapoff
+  command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: remove swapfile from /etc/fstab
+  mount:
+    path: "{{ item }}"
+    fstype: swap
+    state: absent
+  loop:
+    - swap
+    - none
+
+- name: ensure required directories exist
+  file:
+    path: "{{ item.dir }}"
+    state: directory
+    mode: "{{ item.mode }}"
+  loop:
+    - dir: "{{ __k3s_common_download_dir }}"
+      mode: "0750"
+    - dir: "{{ __k3s_common_install_dir }}"
+      mode: "0755"
+    - dir: "{{ k3s_storage_path }}"
+      mode: "0755"
+
+- name: install longhorn packages
+  package:
+    name: "{{ __k3s_storage_packages_longhorn }}"
+    state: present
+  when: k3s_storage_provider == "longhorn"
+
+- name: start and enable iscsid for longhorn
+  service:
+    name: "{{ __k3s_storage_iscsid_service_name }}"
+    state: started
+    enabled: true
+  when: k3s_storage_provider == "longhorn"
+
+- name: install nfs packages
+  package:
+    name: "{{ __k3s_storage_packages_nfs }}"
+    state: present
+  when: k3s_storage_provider == "nfs"

@@ -1,0 +1,9 @@
+---
+# nfs
+__k3s_storage_packages_nfs:
+  - nfs-utils
+# iscsid/longhorn
+__k3s_storage_packages_longhorn:
+  - iscsi-initiator-utils
+__k3s_storage_iscsid_service_name:
+  - iscsid
