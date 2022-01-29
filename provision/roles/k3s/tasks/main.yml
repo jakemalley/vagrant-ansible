@@ -17,13 +17,15 @@
 - name: set k3s_role for servers
   set_fact:
     k3s_role: server
-    k3s_primary: "{{ groups['servers'][0] == inventory_hostname | bool }}"
+    k3s_primary: "{{ groups['servers'][0] == inventory_hostname }}"
   when: "'servers' in group_names"
 
-- name: set k3s_role for servers
+- name: set k3s_role for agents
   set_fact:
-    k3s_role: server
+    k3s_role: agent
   when: "'agents' in group_names"
+
+- debug: var=k3s_role
 
 - import_tasks: prereq.yml
 
@@ -32,3 +34,9 @@
 - import_tasks: selinux.yml
 
 - import_tasks: downloads.yml
+
+- include_tasks: server.yml
+  when: k3s_role == "server"
+
+- include_tasks: agent.yml
+  when: k3s_role == "agent"

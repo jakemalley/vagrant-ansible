@@ -2,8 +2,12 @@
 # vi: set ft=ruby :
 
 machines = {
-  "awx"          => { :ip => "172.17.0.10", :cpus => 6, :memory => 12288, :groups => ["ansible_controller"] },
-  "target01"     => { :ip => "172.17.0.11", :cpus => 2, :memory => 2048,  :groups => ["ansible_target"] },
+  "server01"  => { :ip => "192.168.58.2", :cpus => 4, :memory => 4096, :groups => ["servers"] },
+  "server02"  => { :ip => "192.168.58.3", :cpus => 4, :memory => 4096, :groups => ["servers"] },
+  "server03"  => { :ip => "192.168.58.4", :cpus => 4, :memory => 4096, :groups => ["servers"] },
+  "agent01"   => { :ip => "192.168.58.5", :cpus => 2, :memory => 2048, :groups => ["agents"] },
+  "agent02"   => { :ip => "192.168.58.6", :cpus => 2, :memory => 2048, :groups => ["agents"] },
+  "agent03"   => { :ip => "192.168.58.7", :cpus => 2, :memory => 2048, :groups => ["agents"] },
 }
 
 # create a hash of the groups in the format { "group" => [ "vm1", "vm2"... ] }
@@ -11,44 +15,38 @@ machines_ansible_groups = machines.inject(Hash.new([])) {|g,(k,vs)|vs[:groups].e
 
 Vagrant.configure("2") do |config|
 
-  config.ssh.insert_key = false
   config.vm.box = "jakemalley/centos8-stream"
-  config.vm.box_version = "0.0.1"
+  config.vm.box_version = "0.0.3"
+  config.ssh.insert_key = false
   config.vm.synced_folder ".", "/vagrant", disabled: true
 
-  machines.each do | hostname, machine_config |
+  machines.each_with_index do | (hostname, machine_config), idx |
     config.vm.define "#{hostname}" do | machine |
-      machine.vm.hostname = "#{hostname}.ansible-v2.dev.local"
+      machine.vm.hostname = "#{hostname}.ansible-k3s.local"
       machine.vm.network :private_network, ip: "#{machine_config[:ip]}"
 
       machine.vm.provider "virtualbox" do |vb|
-        vb.name = "lab-ansible-v2_#{hostname}"
+        vb.name = "ansible-k3s_#{hostname}"
         vb.gui = false
         vb.cpus = machine_config[:cpus]
         vb.memory = machine_config[:memory]
       end
 
-      ## only provision the controller
-      #if ! hostname.match(/target/)
-      #  config.vm.synced_folder "lab/", "/opt/provision"
-      #  config.vm.synced_folder "code/", "/var/lib/awx/projects"
-
-      #  machine.vm.provision "shell", path: "lab/bootstrap.sh"
-
-      #  machine.vm.provision "ansible_local" do |ansible|
-      #    ansible.provisioning_path = "/opt/provision"
-      #    ansible.groups = machines_ansible_groups
-      #    ansible.extra_vars = {
-      #      "vagrant_machines": machines,
-      #      "machines_ansible_groups": machines_ansible_groups
-      #    }
-      #    ansible.become = true
-      #    ansible.playbook = "provision.yml"
-      #    ansible.galaxy_role_file = "requirements.yml"
-      #    ansible.galaxy_roles_path = "/etc/ansible/roles"
-      #    ansible.galaxy_command = "sudo ansible-galaxy install --role-file=%{role_file} --roles-path=%{roles_path}"
-      #  end
-      #end
+      # only run ansible at the end - so all machines
+      # run in a single play (by default Vagrant will
+      # provision each machine individually)
+      if idx == machines.length - 1
+        machine.vm.provision "ansible" do |ansible|
+          ansible.limit = "all"
+          ansible.playbook = "provision/provision.yml"
+          ansible.config_file = "provision/ansible.cfg"
+          ansible.groups = machines_ansible_groups
+          ansible.extra_vars = {
+            # node cidr - must match ips assigned to machines
+            k3s_node_cidr = "192.168.58.0/24"
+          }
+        end
+      end
     end
   end
 

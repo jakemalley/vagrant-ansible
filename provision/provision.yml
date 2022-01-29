@@ -1,0 +1,17 @@
+---
+- name: test
+  hosts: all
+
+  pre_tasks:
+    - package:
+        name: "*"
+        state: latest
+
+  roles:
+    - k3s
+
+  post_tasks:
+    - name: remove template file
+      file:
+        path: /.template
+        state: absent

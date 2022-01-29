@@ -1,0 +1,16 @@
+---
+- name: create k3s config directory
+  file:
+    path: "{{ __k3s_config_file | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: create k3s config file
+  template:
+    src: config.yaml.j2
+    dest: "{{ __k3s_config_file }}"
+    owner: root
+    group: root
+    mode: "0440"

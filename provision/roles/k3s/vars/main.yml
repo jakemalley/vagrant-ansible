@@ -1,0 +1,15 @@
+---
+__k3s_supported_os:
+  - RedHat
+
+__k3s_download_dir: /opt/k3s
+__k3s_install_dir: /usr/local/bin
+
+__k3s_server_token_file: "{{ __k3s_download_dir }}/server-token"
+__k3s_node_token_file: "{{ __k3s_download_dir }}/node-token"
+__k3s_default_node_token_file: /var/lib/rancher/k3s/server/node-token
+
+__k3s_config_file: /etc/rancher/k3s/config.yaml
+
+__k3s_server_service: k3s.service
+__k3s_agent_service: k3s-agent.service

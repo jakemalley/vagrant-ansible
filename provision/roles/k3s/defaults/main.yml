@@ -6,12 +6,14 @@ k3s_tls_san: "k3s.local"
 k3s_interface:
 
 # node / cluster / service cidrs
-k3s_node_cidr: "192.168.58.0/24"
+k3s_node_cidr:
 k3s_cluster_cidr: "10.42.0.0/16"
 k3s_service_cidr: "10.43.0.0/16"
 
 # k3s installer
 k3s_installer_url: "https://get.k3s.io"
+k3s_installer_version: ""
+k3s_installer_channel: "stable"
 
 # helm installer
 k3s_helm_installer_url: "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"

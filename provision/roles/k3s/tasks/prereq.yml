@@ -1,4 +1,30 @@
 ---
+# assume the k3s interface is the first interface
+# not being used for management
+- name: set fact for node interface
+  set_fact:
+    __k3s_interface: "{{ ansible_interfaces |
+      select('regex', '^en|^eth') |
+      reject('match', ansible_default_ipv4.interface) |
+      first
+    }}"
+  when:
+    - k3s_interface | default("", true) == ""
+
+- name: debug k3s interface
+  debug:
+    msg: "using interface {{ __k3s_interface }} for k3s"
+
+- name: set fact for node ip addresses
+  set_fact:
+    __node_ip_addresses: "{{ (groups['servers'] + groups['agents']) |
+      map('extract', hostvars, ['ansible_' + __k3s_interface, 'ipv4', 'address']) }}"
+  when:
+    - k3s_node_cidr | default("", true) == ""
+
+- name: debug k3s node addresses
+  debug:
+    msg: "{{ __node_ip_addresses | default([k3s_node_cidr], true) }}"
 
 - name: disable swap using swapoff
   command: swapoff -a
@@ -19,9 +45,9 @@
     state: directory
     mode: "{{ item.mode }}"
   loop:
-    - dir: "{{ __k3s_common_download_dir }}"
+    - dir: "{{ __k3s_download_dir }}"
       mode: "0750"
-    - dir: "{{ __k3s_common_install_dir }}"
+    - dir: "{{ __k3s_install_dir }}"
       mode: "0755"
     - dir: "{{ k3s_storage_path }}"
       mode: "0755"

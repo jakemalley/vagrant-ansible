@@ -1,0 +1,51 @@
+---
+# Ansible Managed!
+
+{# AGENT CONFIG #}
+{% if k3s_role == "agent" %}
+# primary server address for joining the cluster
+server: https://{{ hostvars[groups['servers'][0]]['ansible_'+__k3s_interface]['ipv4']['address'] }}:6443
+# node token
+token-file: {{ __k3s_node_token_file }}
+{% endif %}
+
+{# SERVER CONFIG #}
+{% if k3s_role == "server" %}
+# k3s admin config file
+write-kubeconfig-mode: 640
+{% if groups['servers'][0] == inventory_hostname %}
+cluster-init: true
+{% else %}
+# primary server address for joining the cluster
+server: https://{{ hostvars[groups['servers'][0]]['ansible_'+__k3s_interface]['ipv4']['address'] }}:6443
+{% endif %}
+# server token
+token-file: {{ __k3s_server_token_file }}
+
+# cidrs
+cluster-cidr: {{ k3s_cluster_cidr }}
+service-cidr: {{ k3s_service_cidr }}
+
+# tls
+tls-san:
+  - {{ k3s_tls_san }}
+
+# storage
+default-local-storage-path: {{ k3s_storage_path }}
+
+# disable unwanted components
+disable-helm-controller: true
+disable:
+  - traefik
+  - servicelb
+
+# server node taints
+node-taint:
+  - CriticalAddonsOnly=true:NoExecute
+{% endif %}
+
+{# COMMON CONFIG #}
+# flannel interface + node external ip
+flannel-iface: {{ __k3s_interface }}
+node-ip: {{ lookup('vars', 'ansible_'+__k3s_interface)['ipv4']['address'] }}
+node-external-ip: {{ lookup('vars', 'ansible_'+__k3s_interface)['ipv4']['address'] }}

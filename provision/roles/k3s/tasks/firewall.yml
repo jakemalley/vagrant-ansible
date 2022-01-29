@@ -1,27 +1,4 @@
 ---
-# assume the k3s interface is the first interface
-# not being used for management
-- name: set fact for node interface
-  set_fact:
-    __k3s_interface: "{{ ansible_interfaces |
-      select('regex', '^en|^eth') |
-      reject('match', ansible_default_ipv4.interface) |
-      first
-    }}"
-  when:
-    - k3s_interface | default("", true) == ""
-
-- name: debug k3s interface
-  debug:
-    msg: "using interface {{ __k3s_interface }} for k3s"
-
-- name: set fact for node ip addresses
-  set_fact:
-    __node_ip_addresses: "{{ (groups['servers'] + groups['agents']) |
-      map('extract', hostvars, ['ansible_' + __k3s_interface, 'ipv4', 'address']) }}"
-  when:
-    - k3s_node_cidr | default("", true) == ""
-
 - name: start and enable firewalld
   service:
     name: firewalld
@@ -56,7 +33,8 @@
 
 - name: allow 6443/tcp (Kubernetes API) from public
   ansible.posix.firewalld:
-    rich_rule: rule family="ipv4" port port="6443" protocol="tcp" accept
+    rich_rule: >
+      rule family="ipv4" port port="6443" protocol="tcp" accept
     zone: public
     state: enabled
     permanent: true
@@ -64,14 +42,12 @@
     - k3s_role == "server"
   notify: reload firewalld
 
-- name: debug k3s node addresses
-  debug:
-    msg: "{{ __node_ip_addresses | default([k3s_node_cidr], true) }}"
-
 - name: enable 2379/tcp (Embedded Etcd) from all nodes
   ansible.posix.firewalld:
-    rich_rule: rule family="ipv4" source address="{{ item }}" port port="2379" protocol="tcp" accept
-    permanent: yes
+    rich_rule: >
+      rule family="ipv4" source address="{{ item }}"
+      port port="2379" protocol="tcp" accept
+    permanent: true
     state: enabled
   loop: "{{ __node_ip_addresses | default([k3s_node_cidr], true) }}"
   when:
@@ -80,8 +56,10 @@
 
 - name: enable 2380/tcp (Embedded Etcd) from all nodes
   ansible.posix.firewalld:
-    rich_rule: rule family="ipv4" source address="{{ item }}" port port="2380" protocol="tcp" accept
-    permanent: yes
+    rich_rule: >
+      rule family="ipv4" source address="{{ item }}"
+      port port="2380" protocol="tcp" accept
+    permanent: true
     state: enabled
   loop: "{{ __node_ip_addresses | default([k3s_node_cidr], true) }}"
   when:
@@ -90,24 +68,30 @@
 
 - name: enable 8472/udp (Flannel VXLAN) from all nodes
   ansible.posix.firewalld:
-    rich_rule: rule family="ipv4" source address="{{ item }}" port port="8472" protocol="udp" accept
-    permanent: yes
+    rich_rule: >
+      rule family="ipv4" source address="{{ item }}"
+      port port="8472" protocol="udp" accept
+    permanent: true
     state: enabled
   notify: reload firewalld
   loop: "{{ __node_ip_addresses | default([k3s_node_cidr], true) }}"
 
 - name: enable 10250/tcp (kubelet) from all nodes
   ansible.posix.firewalld:
-    rich_rule: rule family="ipv4" source address="{{ item }}" port port="10250" protocol="tcp" accept
-    permanent: yes
+    rich_rule: >
+      rule family="ipv4" source address="{{ item }}"
+      port port="10250" protocol="tcp" accept
+    permanent: true
     state: enabled
   notify: reload firewalld
   loop: "{{ __node_ip_addresses | default([k3s_node_cidr], true) }}"
 
 - name: enable 9100/tcp (prometheus node exporter) from all nodes
   ansible.posix.firewalld:
-    rich_rule: rule family="ipv4" source address="{{ item }}" port port="9100" protocol="tcp" accept
-    permanent: yes
+    rich_rule: >
+      rule family="ipv4" source address="{{ item }}"
+      port port="9100" protocol="tcp" accept
+    permanent: true
     state: enabled
   notify: reload firewalld
   loop: "{{ __node_ip_addresses | default([k3s_node_cidr], true) }}"
@@ -116,14 +100,14 @@
   ansible.posix.firewalld:
     source: "{{ k3s_cluster_cidr }}"
     zone: trusted
-    permanent: yes
+    permanent: true
     state: enabled
   notify: reload firewalld
 - name: add service-cidr to the firewalld trusted zone
   ansible.posix.firewalld:
     source: "{{ k3s_service_cidr }}"
     zone: trusted
-    permanent: yes
+    permanent: true
     state: enabled
   notify: reload firewalld
 
