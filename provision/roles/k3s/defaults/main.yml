@@ -24,3 +24,6 @@ k3s_storage_path: /srv/data
 
 # haproxy
 haproxy_keepalived_vip:
+
+# firewall
+k3s_firewall_allow_api_access: true

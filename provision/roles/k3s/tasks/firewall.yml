@@ -40,28 +40,43 @@
     permanent: true
   when:
     - k3s_role == "server"
+    - k3s_firewall_allow_api_access | bool
   notify: reload firewalld
 
-- name: enable 2379/tcp (Embedded Etcd) from all nodes
+- name: allow 6443/tcp (Kubernetes API) from nodes
+  ansible.posix.firewalld:
+    rich_rule: >
+      rule family="ipv4" source address="{{ item }}"
+      port port="6443" protocol="udp" accept
+    zone: public
+    state: enabled
+    permanent: true
+  loop: "{{ __node_ip_addresses | default([k3s_node_cidr], true) }}"
+  when:
+    - k3s_role == "server"
+    - not k3s_firewall_allow_api_access | bool
+  notify: reload firewalld
+
+- name: enable 2379/tcp (Embedded Etcd) from server nodes
   ansible.posix.firewalld:
     rich_rule: >
       rule family="ipv4" source address="{{ item }}"
       port port="2379" protocol="tcp" accept
     permanent: true
     state: enabled
-  loop: "{{ __node_ip_addresses | default([k3s_node_cidr], true) }}"
+  loop: "{{ __server_node_ip_addresses | reject('match', __node_external_ip) }}"
   when:
     - k3s_role == "server"
   notify: reload firewalld
 
-- name: enable 2380/tcp (Embedded Etcd) from all nodes
+- name: enable 2380/tcp (Embedded Etcd) from server nodes
   ansible.posix.firewalld:
     rich_rule: >
       rule family="ipv4" source address="{{ item }}"
       port port="2380" protocol="tcp" accept
     permanent: true
     state: enabled
-  loop: "{{ __node_ip_addresses | default([k3s_node_cidr], true) }}"
+  loop: "{{ __server_node_ip_addresses | reject('match', __node_external_ip) }}"
   when:
     - k3s_role == "server"
   notify: reload firewalld
@@ -81,16 +96,6 @@
     rich_rule: >
       rule family="ipv4" source address="{{ item }}"
       port port="10250" protocol="tcp" accept
-    permanent: true
-    state: enabled
-  notify: reload firewalld
-  loop: "{{ __node_ip_addresses | default([k3s_node_cidr], true) }}"
-
-- name: enable 9100/tcp (prometheus node exporter) from all nodes
-  ansible.posix.firewalld:
-    rich_rule: >
-      rule family="ipv4" source address="{{ item }}"
-      port port="9100" protocol="tcp" accept
     permanent: true
     state: enabled
   notify: reload firewalld
