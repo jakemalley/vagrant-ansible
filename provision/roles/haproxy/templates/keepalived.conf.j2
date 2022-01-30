@@ -1,0 +1,41 @@
+# Ansible Managed!
+
+global_defs {
+  notification_email {
+  }
+  router_id LVS_DEVEL
+  vrrp_skip_check_adv_addr
+  vrrp_garp_interval 0
+  vrrp_gna_interval 0
+}
+
+vrrp_script chk_haproxy {
+  script "killall -0 haproxy"
+  interval 2
+}
+
+vrrp_instance haproxy-vip {
+  state BACKUP
+  priority {{ haproxy_k3s_api_servers | length - haproxy_k3s_api_servers.index(haproxy_ip) }}
+  interface {{ haproxy_keepalived_interface }}
+  virtual_router_id 60
+  advert_int 1
+  authentication {
+    auth_type PASS
+    auth_pass 1111
+  }
+  unicast_src_ip {{ haproxy_ip }}
+  unicast_peer {
+{% for server in haproxy_k3s_api_servers | reject('match', haproxy_ip) %}
+    {{ server }}
+{% endfor %}
+  }
+
+  virtual_ipaddress {
+    {{ haproxy_keepalived_vip }}
+  }
+
+  track_script {
+    chk_haproxy
+  }
+}

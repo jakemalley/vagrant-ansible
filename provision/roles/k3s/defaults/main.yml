@@ -21,3 +21,6 @@ k3s_helm_installer_url: "https://raw.githubusercontent.com/helm/helm/main/script
 # storage provider
 k3s_storage_provider: nfs
 k3s_storage_path: /srv/data
+
+# haproxy
+haproxy_keepalived_vip:

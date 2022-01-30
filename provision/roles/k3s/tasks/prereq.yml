@@ -22,6 +22,15 @@
   when:
     - k3s_node_cidr | default("", true) == ""
 
+- name: set fact for server node addresses
+  set_fact:
+    __server_node_ip_addresses: "{{ groups['servers'] |
+      map('extract', hostvars, ['ansible_'+__k3s_interface, 'ipv4', 'address']) }}"
+
+- name: set fact for node external address
+  set_fact:
+    __node_external_ip: "{{ lookup('vars', 'ansible_'+__k3s_interface)['ipv4']['address'] }}"
+
 - name: debug k3s node addresses
   debug:
     msg: "{{ __node_ip_addresses | default([k3s_node_cidr], true) }}"

@@ -1,0 +1,45 @@
+---
+- name: install haproxy
+  package:
+    name:
+      - haproxy
+      - keepalived
+    state: present
+
+- name: set haproxy_connect_any sebool and keep it persistent across reboots
+  seboolean:
+    name: haproxy_connect_any
+    state: true
+    persistent: true
+
+- name: configure haproxy
+  template:
+    src: "{{ haproxy_cfg_tpl }}"
+    dest: "{{ haproxy_cfg_file }}"
+    owner: root
+    group: root
+    mode: 0640
+    validate: haproxy -f %s -c -q
+  notify: restart haproxy
+
+- name: enable haproxy and start haproxy service
+  service:
+    name: haproxy
+    state: started
+    enabled: true
+
+- name: configure keepalived
+  template:
+    src: "{{ keepalived_cfg_tpl }}"
+    dest: "{{ keepalived_cfg_file }}"
+    owner: root
+    group: root
+    mode: 0640
+    validate: keepalived -f %s --check --all
+  notify: restart keepalived
+
+- name: enable keepalived and start keepalived service
+  service:
+    name: keepalived
+    state: started
+    enabled: true

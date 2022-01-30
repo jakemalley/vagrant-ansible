@@ -43,7 +43,8 @@ Vagrant.configure("2") do |config|
           ansible.groups = machines_ansible_groups
           ansible.extra_vars = {
             # node cidr - must match ips assigned to machines
-            k3s_node_cidr = "192.168.58.0/24"
+            "k3s_node_cidr"          => "192.168.58.0/24",
+            "haproxy_keepalived_vip" => "192.168.58.250",
           }
         end
       end

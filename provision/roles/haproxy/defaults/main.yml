@@ -1,0 +1,13 @@
+---
+# haproxy
+haproxy_cfg_tpl: haproxy.cfg.j2
+haproxy_cfg_stats_socket: false
+haproxy_k3s_api_bind: "*"
+haproxy_k3s_api_servers:
+  - "127.0.0.1"
+haproxy_ip:
+
+# keepalived
+keepalived_cfg_tpl: keepalived.conf.j2
+haproxy_keepalived_interface:
+haproxy_keepalived_vip:

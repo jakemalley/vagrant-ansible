@@ -8,8 +8,7 @@
           INSTALL_K3S_CHANNEL: "{{ k3s_installer_channel }}"
           INSTALL_K3S_BIN_DIR: "{{ __k3s_install_dir }}"
           INSTALL_K3S_EXEC: "{{ k3s_role }}"
-          INSTALL_K3S_SKIP_START: "{% if k3s_role == 'server' and \
-            not k3s_primary | default(false) %}true{% endif %}"
+          INSTALL_K3S_SKIP_START: "{% if k3s_role == 'server' %}true{% endif %}"
     - name: run k3s installer
       command:
         cmd: "{{ __k3s_download_dir }}/k3s-install.sh"
