@@ -1,0 +1,11 @@
+---
+# noqa syntax-check internal-error
+- name: create a k3s cluster
+  hosts: all
+
+  pre_tasks:
+    - debug:
+        msg: pre task
+
+  roles:
+    - jakemalley.k3s.k3s

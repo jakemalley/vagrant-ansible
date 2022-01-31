@@ -1,0 +1,44 @@
+---
+# tasks file for k3s
+
+- name: set fact for k3s role (server)
+  set_fact:
+    __k3s_role: "{{ 'server' if 'servers' in group_names else 'agent' }}"
+    __k3s_primary: "{{
+      'servers' in group_names and
+      groups['servers'][0] == inventory_hostname
+    }}"
+
+- name: set fact for node interfaces
+  set_fact:
+    __k3s_interface: "{{
+      k3s_interface |
+      default(
+        ansible_interfaces |
+          select('regex', '^eno|^ens|^enp|^enx|^eth') | first,
+        true
+      )
+    }}"
+
+- name: set fact for server/agent node ip addresses
+  set_fact:
+    __k3s_server_node_ip_addresses: "{{
+      groups['servers'] | default([]) |
+      map('extract', hostvars, ['ansible_'+__k3s_interface, 'ipv4', 'address'])
+    }}"
+    __k3s_agent_node_ip_addresses: "{{
+      groups['agents'] | default([]) |
+      map('extract', hostvars, ['ansible_'+__k3s_interface, 'ipv4', 'address'])
+    }}"
+
+- name: set fact for all node ip addresses
+  set_fact:
+    __k3s_node_ip_addresses: "{{
+      __k3s_server_node_ip_addresses + __k3s_agent_node_ip_addresses
+    }}"
+
+- name: set fact for current node ip address
+  set_fact:
+    __k3s_node_ip_address: "{{
+      lookup('vars', 'ansible_'+__k3s_interface)['ipv4']['address']
+    }}"

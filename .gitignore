@@ -1,2 +1,5 @@
 .vagrant/
 code/
+
+.DS_Store
+

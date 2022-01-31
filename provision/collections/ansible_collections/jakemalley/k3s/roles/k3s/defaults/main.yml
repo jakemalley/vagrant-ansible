@@ -1,0 +1,51 @@
+---
+# defaults file for k3s
+
+## k3s installer
+k3s_installer_url: "https://get.k3s.io"
+k3s_installer_version: ""
+k3s_installer_channel: "stable"
+
+## helm installer (set to empty to disable installation)
+k3s_helm_installer_url: "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
+
+# pre checks
+k3s_supported_os_check: true
+
+## tls SANs
+k3s_tls_san: "cluster.k3s"
+
+## storage
+k3s_storage_provider: local
+k3s_default_storage_path: /srv/data
+
+## additional components
+k3s_disable_helm_controller: true
+k3s_disable_components:
+  - traefik
+  - servicelb
+
+# server node taints
+k3s_server_node_taints:
+  - CriticalAddonsOnly=true:NoExecute
+
+## networking
+# interface used by k3s nodes to communicate
+k3s_interface:
+
+# actual network cidr for node's network interfaves used for firewall rules between nodes,
+# by default will will use individual node addresses if not set
+k3s_node_cidr:
+
+# cluster/service cidr used by k3s
+k3s_cluster_cidr: "10.42.0.0/16"
+k3s_service_cidr: "10.43.0.0/16"
+
+# firewall rules (currently only supports firewalld)
+k3s_firewall: true
+k3s_firewall_allow_api_access: true
+k3s_firewall_allow_vxlan: true
+k3s_firewall_allow_https_ingress: true
+
+# selinux
+k3s_selinux: true

@@ -1,0 +1,34 @@
+---
+# tasks file for k3s
+
+- name: disable swap using swapoff
+  command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: remove swapfile from /etc/fstab
+  mount:
+    path: "{{ item }}"
+    fstype: swap
+    state: absent
+  loop:
+    - swap
+    - none
+
+- name: create required directories
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: "{{ item.mode }}"
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+  loop:
+    - path: "{{ k3s_installer_directory | default(__k3s_installer_directory, true) }}"
+      mode: "0700"
+      owner: root
+      group: root
+    - path: "{{ k3s_bin_directory | default(__k3s_bin_directory, true) }}"
+      mode: "0755"
+    - path: "{{ k3s_default_storage_path }}"
+      mode: "0755"
+    - path: "{{ __k3s_config_file | dirname }}"
+      mode: "0750"

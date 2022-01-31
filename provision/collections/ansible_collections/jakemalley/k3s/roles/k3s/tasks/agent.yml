@@ -1,0 +1,32 @@
+---
+# tasks file for k3s
+
+- name: assert node-token is defined
+  assert:
+    quiet: true
+    that: hostvars[groups['servers'][0]]['__k3s_node_token'] | default("", true) != ""
+
+- name: write k3s node token to agent nodes
+  copy:
+    dest: "{{ __k3s_node_token_file }}"
+    owner: root
+    group: root
+    mode: 0400
+    content: "{{ hostvars[groups['servers'][0]]['__k3s_node_token'] }}"
+
+- name: create k3s agent config file
+  template:
+    src: "{{ __k3s_config_template }}"
+    dest: "{{ __k3s_config_file }}"
+    owner: root
+    group: root
+    mode: "0440"
+
+- name: run installer on agent nodes
+  include_tasks: run_installer.yml
+
+- name: ensure the k3s agent service is started
+  service:
+    name: "{{ __k3s_service_name }}"
+    state: started
+    enabled: true

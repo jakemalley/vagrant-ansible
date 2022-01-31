@@ -1,16 +1,55 @@
 ---
-- name: test
+## pre-install play
+- name: pre-install
   hosts: all
 
-  pre_tasks:
-    - package:
+  tasks:
+    - name: upgrade all packages
+      package:
         name: "*"
         state: latest
 
-  roles:
-    - k3s
+## installation
+- import_playbook: jakemalley.k3s.k3s
 
-  post_tasks:
+## post-install plays
+- name: post-install servers
+  hosts: servers
+
+  tasks:
+    - name: add vimrc settings for YAML
+      lineinfile:
+        path: /root/.vimrc
+        create: true
+        line: "{{ line }}"
+      loop_control:
+        loop_var: line
+      loop:
+        - au! BufNewFile,BufReadPost *.{yaml,yml} set filetype=yaml
+        - autocmd FileType yaml setlocal ts=2 sts=2 sw=2 expandtab autoindent
+
+    - name: install bash-completion
+      package:
+        name: bash-completion
+        state: present
+
+    - name: add bash completion
+      lineinfile:
+        path: /root/.bashrc
+        create: true
+        line: "{{ line }}"
+      loop_control:
+        loop_var: line
+      loop:
+        - source /usr/share/bash-completion/bash_completion
+        - source <(kubectl completion bash)
+        - alias k=kubectl
+        - complete -F __start_kubectl k
+
+- name: post-install
+  hosts: all
+
+  tasks:
     - name: remove template file
       file:
         path: /.template

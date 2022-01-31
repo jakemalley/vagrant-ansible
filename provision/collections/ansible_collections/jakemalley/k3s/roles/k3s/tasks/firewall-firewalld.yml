@@ -1,0 +1,147 @@
+---
+# tasks file for k3s
+
+- name: start and enable firewalld
+  service:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: check firewalld default zone
+  command: firewall-cmd --get-default-zone
+  register: r_firewalld_default_zone
+  changed_when: >
+    __k3s_firewalld_default_zone not in r_firewalld_default_zone.stdout
+  notify: set firewalld default zone
+
+- name: enable masquerade for k3s
+  ansible.posix.firewalld:
+    masquerade: "yes"
+    zone: "{{ __k3s_firewalld_default_zone }}"
+    state: enabled
+    permanent: true
+  notify: reload firewalld
+
+- name: remove default services
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    zone: "{{ __k3s_firewalld_default_zone }}"
+    state: disabled
+    permanent: true
+  loop:
+    - dhcpv6-client
+    - cockpit
+  notify: reload firewalld
+
+- name: allow ssh
+  ansible.posix.firewalld:
+    service: ssh
+    zone: "{{ __k3s_firewalld_default_zone }}"
+    state: enabled
+    permanent: true
+  notify: reload firewalld
+
+- name: allow 6443/tcp (Kubernetes API) from everywhere
+  ansible.posix.firewalld:
+    rich_rule: >
+      rule family="ipv4" port port="6443" protocol="tcp" accept
+    zone: "{{ __k3s_firewalld_default_zone }}"
+    state: enabled
+    permanent: true
+  when:
+    - __k3s_role == "server"
+    - k3s_firewall_allow_api_access | bool
+  notify: reload firewalld
+
+- name: allow 6443/tcp (Kubernetes API) from nodes
+  ansible.posix.firewalld:
+    rich_rule: >
+      rule family="ipv4" source address="{{ item }}"
+      port port="6443" protocol="tcp" accept
+    zone: "{{ __k3s_firewalld_default_zone }}"
+    state: enabled
+    permanent: true
+  loop: "{{ [k3s_node_cidr,] if k3s_node_cidr | default('', true) != '' else __k3s_node_ip_addresses }}"
+  when:
+    - __k3s_role == "server"
+    - not k3s_firewall_allow_api_access | bool
+  notify: reload firewalld
+
+- name: enable 2379/tcp (embedded Etcd) from server nodes
+  ansible.posix.firewalld:
+    rich_rule: >
+      rule family="ipv4" source address="{{ item }}"
+      port port="2379" protocol="tcp" accept
+    zone: "{{ __k3s_firewalld_default_zone }}"
+    state: enabled
+    permanent: true
+  loop: "{{ __k3s_server_node_ip_addresses | reject('match', __k3s_node_ip_address) }}"
+  when:
+    - __k3s_role == "server"
+  notify: reload firewalld
+
+- name: enable 2380/tcp (embedded Etcd) from server nodes
+  ansible.posix.firewalld:
+    rich_rule: >
+      rule family="ipv4" source address="{{ item }}"
+      port port="2380" protocol="tcp" accept
+    zone: "{{ __k3s_firewalld_default_zone }}"
+    state: enabled
+    permanent: true
+  loop: "{{ __k3s_server_node_ip_addresses | reject('match', __k3s_node_ip_address) }}"
+  when:
+    - __k3s_role == "server"
+  notify: reload firewalld
+
+- name: enable 8472/udp (flannel VXLAN) from all nodes
+  ansible.posix.firewalld:
+    rich_rule: >
+      rule family="ipv4" source address="{{ item }}"
+      port port="8472" protocol="udp" accept
+    zone: "{{ __k3s_firewalld_default_zone }}"
+    state: enabled
+    permanent: true
+  loop: "{{ [k3s_node_cidr,] if k3s_node_cidr | default('', true) != '' else __k3s_node_ip_addresses }}"
+  notify: reload firewalld
+
+- name: enable 10250/tcp (kubelet) from all nodes
+  ansible.posix.firewalld:
+    rich_rule: >
+      rule family="ipv4" source address="{{ item }}"
+      port port="10250" protocol="tcp" accept
+    zone: "{{ __k3s_firewalld_default_zone }}"
+    state: enabled
+    permanent: true
+  notify: reload firewalld
+  loop: "{{ [k3s_node_cidr,] if k3s_node_cidr | default('', true) != '' else __k3s_node_ip_addresses }}"
+
+- name: enable http/s for ingress
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    zone: "{{ __k3s_firewalld_default_zone }}"
+    state: enabled
+    permanent: true
+  loop:
+    - http
+    - https
+  when: k3s_firewall_allow_https_ingress | bool
+  notify: reload firewalld
+
+- name: add cluster-cidr to the firewalld trusted zone
+  ansible.posix.firewalld:
+    source: "{{ k3s_cluster_cidr }}"
+    zone: "{{ __k3s_firewalld_trusted_zone }}"
+    state: enabled
+    permanent: true
+  notify: reload firewalld
+
+- name: add service-cidr to the firewalld trusted zone
+  ansible.posix.firewalld:
+    source: "{{ k3s_service_cidr }}"
+    zone: "{{ __k3s_firewalld_trusted_zone }}"
+    state: enabled
+    permanent: true
+  notify: reload firewalld
+
+- name: flush handlers
+  meta: flush_handlers

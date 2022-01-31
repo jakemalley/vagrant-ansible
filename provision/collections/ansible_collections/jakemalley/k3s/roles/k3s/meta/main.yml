@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  role_name: k3s
+  author: Jake Malley (https://jakemalley.com)
+  description: Install a K3S cluster
+
+  license: GPL-2.0-or-later
+
+  min_ansible_version: 2.9
+
+  platforms:
+    - name: EL
+      versions:
+        - all
+    - name: Fedora
+      versions:
+        - all
+
+  galaxy_tags:
+    - k3s
+    - kubernetes
+
+dependencies: []

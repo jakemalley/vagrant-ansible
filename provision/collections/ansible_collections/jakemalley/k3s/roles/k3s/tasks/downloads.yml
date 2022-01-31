@@ -1,0 +1,28 @@
+---
+# tasks file for k3s
+
+- name: download k3s installer
+  get_url:
+    url: "{{ k3s_installer_url }}"
+    dest: "{{ __k3s_installer_directory }}/k3s-install.sh"
+    mode: "0700"
+
+- name: download and install helm
+  block:
+    - name: download helm installer
+      get_url:
+        url: "{{ k3s_helm_installer_url }}"
+        dest: "{{ __k3s_installer_directory }}/get-helm-3.sh"
+        mode: "0750"
+
+    - name: install helm
+      command:
+        cmd: "{{ __k3s_installer_directory }}/get-helm-3.sh"
+        creates: "{{ __k3s_bin_directory }}/helm"
+      environment:
+        HELM_INSTALL_DIR: "{{ __k3s_bin_directory }}"
+        PATH: "{{ __k3s_bin_directory }}:{{ ansible_env.PATH }}"
+
+  when:
+    - __k3s_role == 'server'
+    - k3s_helm_installer_url | default("", true) != ""

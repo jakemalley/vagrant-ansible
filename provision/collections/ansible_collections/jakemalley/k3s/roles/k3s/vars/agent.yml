@@ -1,0 +1,8 @@
+---
+# vars file for k3s agent nodes
+
+# config
+__k3s_config_template: agent-config.yaml.j2
+
+# services
+__k3s_service_name: k3s-agent.service

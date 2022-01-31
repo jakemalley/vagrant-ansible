@@ -3,11 +3,11 @@
 
 machines = {
   "server01"  => { :ip => "192.168.58.2", :cpus => 4, :memory => 4096, :groups => ["servers"] },
-  "server02"  => { :ip => "192.168.58.3", :cpus => 4, :memory => 4096, :groups => ["servers"] },
-  "server03"  => { :ip => "192.168.58.4", :cpus => 4, :memory => 4096, :groups => ["servers"] },
-  "agent01"   => { :ip => "192.168.58.5", :cpus => 2, :memory => 2048, :groups => ["agents"] },
-  "agent02"   => { :ip => "192.168.58.6", :cpus => 2, :memory => 2048, :groups => ["agents"] },
-  "agent03"   => { :ip => "192.168.58.7", :cpus => 2, :memory => 2048, :groups => ["agents"] },
+  # "server02"  => { :ip => "192.168.58.3", :cpus => 4, :memory => 4096, :groups => ["servers"] },
+  # "server03"  => { :ip => "192.168.58.4", :cpus => 4, :memory => 4096, :groups => ["servers"] },
+  # "agent01"   => { :ip => "192.168.58.5", :cpus => 2, :memory => 2048, :groups => ["agents"] },
+  # "agent02"   => { :ip => "192.168.58.6", :cpus => 2, :memory => 2048, :groups => ["agents"] },
+  # "agent03"   => { :ip => "192.168.58.7", :cpus => 2, :memory => 2048, :groups => ["agents"] },
 }
 
 # create a hash of the groups in the format { "group" => [ "vm1", "vm2"... ] }
@@ -43,8 +43,8 @@ Vagrant.configure("2") do |config|
           ansible.groups = machines_ansible_groups
           ansible.extra_vars = {
             # node cidr - must match ips assigned to machines
-            "k3s_node_cidr"          => "192.168.58.0/24",
-            "haproxy_keepalived_vip" => "192.168.58.250",
+            "k3s_node_cidr" => "192.168.58.0/24",
+            "k3s_interface" => "enp0s8"
           }
         end
       end

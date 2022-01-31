@@ -1,0 +1,42 @@
+---
+# tasks file for k3s
+
+- name: run k3s installer
+  block:
+    - name: set remote environment for install command
+      set_fact:
+        __k3s_install_env:
+          INSTALL_K3S_VERSION: "{{ k3s_installer_version }}"
+          INSTALL_K3S_CHANNEL: "{{ k3s_installer_channel }}"
+          INSTALL_K3S_BIN_DIR: "{{ __k3s_bin_directory }}"
+          INSTALL_K3S_EXEC: "{{ __k3s_role }}"
+          INSTALL_K3S_SKIP_START: "true"
+
+    - name: run k3s installer
+      command:
+        cmd: "{{ __k3s_installer_directory }}/k3s-install.sh"
+        creates: "{{ __k3s_bin_directory }}/k3s"
+      environment: "{{ __k3s_install_env }}"
+      register: r_cmd_k3s_install
+
+
+  always:
+    - name: create k3s-install.log
+      copy:
+        dest: "{{ __k3s_installer_directory }}/k3s-install.{{ item.type }}.log"
+        content: |
+          # created by Ansible!
+          # k3s install log ({{ item.type }})
+          # start: {{ r_cmd_k3s_install.start }}
+          # environment:
+          {% for k, v in __k3s_install_env.items() %}
+          {{ k }}={{ v }}
+          {% endfor %}
+          # log:
+          {{ r_cmd_k3s_install[item.type] }}
+          # end: {{ r_cmd_k3s_install.end }}
+        mode: "0440"
+      loop:
+        - type: stdout
+        - type: stderr
+      when: r_cmd_k3s_install.changed | bool

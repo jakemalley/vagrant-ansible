@@ -1,3 +1,0 @@
----
-haproxy_cfg_file: /etc/haproxy/haproxy.cfg
-keepalived_cfg_file: /etc/keepalived/keepalived.conf

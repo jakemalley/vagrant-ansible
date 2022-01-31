@@ -1,0 +1,15 @@
+---
+# Ansible Managed!
+
+# primary server address for joining the cluster
+server: https://{{ hostvars[groups['servers'][0]]['ansible_'+__k3s_interface]['ipv4']['address'] }}:6443
+
+# node token
+token-file: {{ __k3s_node_token_file }}
+
+# flannel interface + node external ip
+flannel-iface: {{ __k3s_interface }}
+
+# node interface
+node-ip: {{ __k3s_node_ip_address }}
+node-external-ip: {{ __k3s_node_ip_address }}
