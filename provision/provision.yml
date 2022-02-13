@@ -54,3 +54,6 @@
       file:
         path: /.template
         state: absent
+
+- name: install awx
+  import_playbook: awx.yml

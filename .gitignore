@@ -1,5 +1,4 @@
 .vagrant/
-code/
-
 .DS_Store
-
+provision/roles
+provision/collections

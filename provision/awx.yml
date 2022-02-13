@@ -1,0 +1,91 @@
+---
+- name: awx
+  hosts: servers[0]
+  gather_facts: true
+
+  vars:
+    awx_operator_version: "0.16.1"
+    awx_admin_password: admin
+
+  handlers:
+    - name: create awx-operator installed file
+      file:
+        state: touch
+        path: /root/.awx-operator-installed
+
+  tasks:
+    - name: install kubernetes pip package
+      pip:
+        name: kubernetes
+      environment:
+        PATH: /usr/local/bin:{{ ansible_facts.env.PATH }}
+
+    - name: create helm values folder
+      file:
+        state: directory
+        path: /root/helm
+        mode: 0750
+
+    - name: copy helm values values files
+      copy:
+        src: files/{{ item }}
+        dest: /root/helm/{{ item }}
+        mode: 0640
+      loop:
+        - haproxy-values.yaml
+
+    - kubernetes.core.helm:
+        chart_repo_url: https://haproxytech.github.io/helm-charts
+        chart_ref: kubernetes-ingress
+        release_name: haproxy
+        release_namespace: haproxy-system
+        create_namespace: true
+        values_files:
+          - /root/helm/haproxy-values.yaml
+      environment:
+        PATH: /usr/local/bin:{{ ansible_facts.env.PATH }}
+
+    - name: clone awx operator
+      git:
+        repo: https://github.com/ansible/awx-operator
+        dest: /root/awx-operator
+        update: false
+        version: "{{ awx_operator_version }}"
+
+    - name: install awx operator
+      command: make deploy
+      environment:
+        PATH: /usr/local/bin:{{ ansible_facts.env.PATH }}
+        NAMESPACE: awx
+      args:
+        chdir: /root/awx-operator
+        creates: /root/.awx-operator-installed
+      notify: create awx-operator installed file
+
+    - name: create admin password secret
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: awx-admin-password
+            namespace: awx
+          stringData:
+            password: "{{ awx_admin_password }}"
+
+    - name: create awx
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition:
+          apiVersion: awx.ansible.com/v1beta1
+          kind: AWX
+          metadata:
+            name: awx
+            namespace: awx
+          spec:
+            service_type: ClusterIP
+            ingress_type: ingress
+            hostname: awx.k3s.vagrant-ansible.local

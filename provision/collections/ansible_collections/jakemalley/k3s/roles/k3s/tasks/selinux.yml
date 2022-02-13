@@ -1,7 +1,0 @@
----
-# tasks file for k3s
-
-- name: enable selinux
-  ansible.posix.selinux:
-    policy: targeted
-    state: enforcing
