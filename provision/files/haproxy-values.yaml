@@ -1,0 +1,12 @@
+---
+controller:
+  kind: DaemonSet
+  daemonset:
+    useHostPort: true
+
+  ingressClassResource:
+    name: haproxy
+    default: true
+
+defaultBackend:
+  enabled: false

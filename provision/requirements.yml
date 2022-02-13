@@ -1,0 +1,4 @@
+---
+collections:
+  - kubernetes.core
+  - jakemalley.k3s
